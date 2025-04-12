@@ -4,32 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"sync"
 	"time"
 )
-
-type Peer struct {
-	ID              string
-	Interested      bool
-	Choked          bool
-	DownloadRate    int
-	LastUnchokedAt  time.Time
-	bytesDownloaded int
-	lastCheckedTime time.Time
-	snubbed         bool
-	snubbedUntil    time.Time
-	mu              sync.Mutex
-}
-
-type TorrentClient struct {
-	Peers                        []*Peer
-	IsSeeder                     bool
-	UnchokeInterval              time.Duration
-	OptimisticInterval           time.Duration
-	DownloadRateCheckingInterval time.Duration
-	SnubbedCheckingInterval      time.Duration
-	lastOptimisticUnchoke        *Peer
-}
 
 func (tc *TorrentClient) SnubberChecker() {
 	snubbedTimer := time.NewTicker(tc.SnubbedCheckingInterval)
