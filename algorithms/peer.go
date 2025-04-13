@@ -1,20 +1,22 @@
 package algorithms
 
 import (
+	"net"
 	"sync"
 	"time"
 )
 
 type Peer struct {
-	ID              string
+	IP              net.IP
+	PORT            int
 	Interested      bool
 	Choked          bool
 	DownloadRate    int
 	LastUnchokedAt  time.Time
-	bytesDownloaded int
-	lastCheckedTime time.Time
-	snubbed         bool
-	snubbedUntil    time.Time
+	BytesDownloaded int
+	LastCheckedTime time.Time
+	Snubbed         bool
+	SnubbedUntil    time.Time
 	mu              sync.Mutex
 	Bitfield        []bool
 }

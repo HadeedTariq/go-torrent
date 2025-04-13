@@ -28,9 +28,6 @@ type Piece struct {
 	IsVerified bool
 }
 
-// Initialize pieces and structures
-// I think so the torrent file is uploaded and this func runs
-// Now what have to make sure is to integrate diff learning methods in to that
 func (tc *TorrentClient) InitPieces(pieceHashes [][]byte) {
 
 	tc.TotalPieces = len(pieceHashes)
@@ -51,5 +48,7 @@ func (tc *TorrentClient) InitPieces(pieceHashes [][]byte) {
 }
 
 func (tc *TorrentClient) RarestPiece() {
+
+	// so for getting the rarest piece we have to check in the peers list that which peers have the rarest piece
 
 }
