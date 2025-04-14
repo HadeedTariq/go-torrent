@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"unicode"
 )
@@ -104,12 +105,23 @@ func (p *Parser) parseDict() map[string]interface{} {
 	return result
 }
 
-// d3:foo3:bar5:helloi42e4:listl1:a1:bee
+func GeneratePeerID() string {
+	return "-GT0001-" + RandString(12)
+}
 
-func main() {
-	input := []byte("d3:bar4:spam3:fooi42ee")
-	parser := NewParser(input)
-	result := parser.parse()
+func RandString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
 
-	fmt.Printf("Parsed result: %#v\n", result)
+func EncodeInfoHash(infoHash [20]byte) string {
+	var encoded string
+	for _, b := range infoHash {
+		encoded += fmt.Sprintf("%%%02X", b) // %XX format
+	}
+	return encoded
 }

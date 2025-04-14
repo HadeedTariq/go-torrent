@@ -1,9 +1,11 @@
 package algorithms
 
-import "time"
+import (
+	"time"
+)
 
 type TorrentClient struct {
-	Peers                        []*Peer
+	Peers                        map[string]*Peer
 	IsSeeder                     bool
 	UnchokeInterval              time.Duration
 	OptimisticInterval           time.Duration

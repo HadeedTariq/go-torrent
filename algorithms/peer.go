@@ -8,7 +8,7 @@ import (
 
 type Peer struct {
 	IP              net.IP
-	PORT            int
+	PORT            uint16
 	Interested      bool
 	Choked          bool
 	DownloadRate    int
