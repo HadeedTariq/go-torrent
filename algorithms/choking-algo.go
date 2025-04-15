@@ -15,13 +15,13 @@ func (tc *TorrentClient) SnubberChecker() {
 			for _, peer := range tc.Peers {
 				peer.mu.Lock()
 
-				if peer.snubbed && time.Now().After(peer.snubbedUntil) {
-					peer.snubbed = false
+				if peer.Snubbed && time.Now().After(peer.SnubbedUntil) {
+					peer.Snubbed = false
 				}
 
-				if !peer.snubbed && peer.DownloadRate < 10 && time.Since(peer.LastUnchokedAt) < 10*time.Second {
-					peer.snubbed = true
-					peer.snubbedUntil = time.Now().Add(20 * time.Minute)
+				if !peer.Snubbed && peer.DownloadRate < 10 && time.Since(peer.LastUnchokedAt) < 10*time.Second {
+					peer.Snubbed = true
+					peer.SnubbedUntil = time.Now().Add(20 * time.Minute)
 				}
 
 				peer.mu.Unlock()
@@ -36,11 +36,11 @@ func (tc *TorrentClient) UpdateDownloadRateOfPeers() {
 		select {
 		case <-downloadRateTimer.C:
 			for _, peer := range tc.Peers {
-				duration := time.Now().Sub(peer.lastCheckedTime)
-				rate := float64(peer.bytesDownloaded) / duration.Seconds()
+				duration := time.Now().Sub(peer.LastCheckedTime)
+				rate := float64(peer.BytesDownloaded) / duration.Seconds()
 				peer.DownloadRate = int(rate)
-				peer.bytesDownloaded = 0
-				peer.lastCheckedTime = time.Now()
+				peer.BytesDownloaded = 0
+				peer.LastCheckedTime = time.Now()
 			}
 		}
 	}
@@ -67,7 +67,7 @@ func (tc *TorrentClient) RunCheckLoop() {
 func (tc *TorrentClient) runSeederChoke() {
 	interestedPeers := []*Peer{}
 	for _, peer := range tc.Peers {
-		if peer.Interested && !peer.snubbed {
+		if peer.Interested && !peer.Snubbed {
 			interestedPeers = append(interestedPeers, peer)
 		}
 	}
@@ -95,7 +95,7 @@ func (tc *TorrentClient) runSeederChoke() {
 func (tc *TorrentClient) runLeecherChoke() {
 	interestedPeers := []*Peer{}
 	for _, peer := range tc.Peers {
-		if peer.Interested && !peer.snubbed {
+		if peer.Interested && !peer.Snubbed {
 			interestedPeers = append(interestedPeers, peer)
 		}
 	}
@@ -119,7 +119,7 @@ func (tc *TorrentClient) runOptimisticLeecher() {
 
 	chokedInterestedPeers := []*Peer{}
 	for _, peer := range tc.Peers {
-		if peer.Interested && peer.Choked && !peer.snubbed {
+		if peer.Interested && peer.Choked && !peer.Snubbed {
 			chokedInterestedPeers = append(chokedInterestedPeers, peer)
 		}
 	}
@@ -134,5 +134,5 @@ func (tc *TorrentClient) runOptimisticLeecher() {
 
 	selectedPeer.Choked = false
 	selectedPeer.LastUnchokedAt = time.Now()
-	fmt.Printf("🌟 Optimistically unchoked peer: %s\n", selectedPeer.ID)
+	fmt.Printf("🌟 Optimistically unchoked peer: %s\n", selectedPeer.IP)
 }

@@ -101,8 +101,9 @@ func main() {
 	infoHash := sha1.Sum(buf.Bytes())
 	encodedInfoHash := utils.EncodeInfoHash(infoHash)
 
+	// so the error basically exist due to the double encoding
+
 	params := url.Values{}
-	params.Add("info_hash", encodedInfoHash)      // raw 20-byte string
 	params.Add("peer_id", utils.GeneratePeerID()) // 20-byte peer ID
 	params.Add("port", strconv.Itoa(port))
 	params.Add("uploaded", "0")
@@ -111,46 +112,59 @@ func main() {
 	params.Add("compact", "1")
 	params.Add("event", "started")
 
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+	query := fmt.Sprintf("info_hash=%s&%s", encodedInfoHash, params.Encode())
+	fullURL := fmt.Sprintf("%s?%s", baseURL, query)
+	fmt.Println(fullURL)
 
 	// Send the request
 	resp, err := http.Get(fullURL)
 	if err != nil {
-		fmt.Errorf("tracker request failed: %v", err)
+		log.Fatalf("❌ Tracker request failed: %v", err) // stop the program
 	}
 	defer resp.Body.Close()
 
+	type TrackResponseStruct struct {
+		Interval int         `bencode:"interval"`
+		Peers    interface{} `bencode:"peers"`
+	}
+
 	// Decode tracker response
-	var trackerResp map[string]interface{}
+	var trackerResp TrackResponseStruct
 	err = bencode.Unmarshal(resp.Body, &trackerResp)
 	if err != nil {
-		fmt.Errorf("failed to parse tracker response: %v", err)
+		log.Fatalf("failed to parse tracker response: %v", err)
 	}
 
 	// Handle compact peer list
-	peersRaw, ok := trackerResp["peers"]
-	if !ok {
-		fmt.Errorf("no peers field in tracker response")
-	}
+	peersRaw := trackerResp.Peers
 
+	fmt.Println("passes")
+	var parsedPeers map[string]*algorithms.Peer
 	switch peers := peersRaw.(type) {
 	case string: // compact format
-		utils.ParsePeers([]byte(peers))
+		parsedPeers, err = utils.ParsePeers([]byte(peers))
 	case []interface{}: // dictionary format
-		utils.ParsePeersFromDict(peers)
+		parsedPeers, err = utils.ParsePeersFromDict(peers)
 	default:
-		fmt.Errorf("unsupported peers format: %T", peersRaw)
+		log.Fatalf("unsupported peers format: %T", peersRaw)
 	}
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			fmt.Println("❌ Error accepting connection:", err)
-			continue
-		}
-
-		go handlePeerConnection(conn) // handle each peer in a separate goroutine
+	if err != nil {
+		log.Fatalf("failed to parse peers: %v", err)
 	}
+	// ~ I think so parsing peers part is done
+
+	client.Peers = parsedPeers
+	// ~ so the storing the peers part is done I think so
+
+	// for {
+	// 	conn, err := listener.Accept()
+	// 	if err != nil {
+	// 		fmt.Println("❌ Error accepting connection:", err)
+	// 		continue
+	// 	}
+
+	// 	go handlePeerConnection(conn) // handle each peer in a separate goroutine
+	// }
 
 }
 

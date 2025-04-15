@@ -119,6 +119,7 @@ func RandString(n int) string {
 }
 
 func EncodeInfoHash(infoHash [20]byte) string {
+	fmt.Println(infoHash)
 	var encoded string
 	for _, b := range infoHash {
 		encoded += fmt.Sprintf("%%%02X", b) // %XX format
