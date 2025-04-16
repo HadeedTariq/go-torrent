@@ -154,21 +154,13 @@ func main() {
 	// ~ I think so parsing peers part is done
 
 	client.Peers = parsedPeers
-	// ~ so the storing the peers part is done I think so
+	// ~ so the storing the peers part is done I think so how should I connect to the peers
+	// so the brute force approach is to connect to all peers at once
+	// ~ but my main concern is not to connect my self to peers I want to connect diff peers with each other based on there specifications
 
-	// for {
-	// 	conn, err := listener.Accept()
-	// 	if err != nil {
-	// 		fmt.Println("❌ Error accepting connection:", err)
-	// 		continue
-	// 	}
-
-	// 	go handlePeerConnection(conn) // handle each peer in a separate goroutine
-	// }
-
-}
-
-func handlePeerConnection(conn net.Conn) {
-	defer conn.Close()
+	// ! Arising Questions
+	// ~ So when I connect to the tracker Is I am also registered there
+	// ~ So for the peers lists I have to add both outbound that I get from the tracker and inbound peers that connect with me in the same peer list
+	// ~
 
 }

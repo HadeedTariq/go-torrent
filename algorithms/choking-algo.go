@@ -134,5 +134,5 @@ func (tc *TorrentClient) runOptimisticLeecher() {
 
 	selectedPeer.Choked = false
 	selectedPeer.LastUnchokedAt = time.Now()
-	fmt.Printf("🌟 Optimistically unchoked peer: %s\n", selectedPeer.IP)
+	fmt.Printf(" Optimistically unchoked peer: %s\n", selectedPeer.IP)
 }
