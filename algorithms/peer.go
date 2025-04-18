@@ -9,6 +9,7 @@ import (
 type Peer struct {
 	IP              net.IP
 	PORT            uint16
+	Conn            net.Conn
 	Interested      bool
 	Choked          bool
 	DownloadRate    int
@@ -19,4 +20,5 @@ type Peer struct {
 	SnubbedUntil    time.Time
 	mu              sync.Mutex
 	Bitfield        []bool
+	HandshakeDone   bool
 }

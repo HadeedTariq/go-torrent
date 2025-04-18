@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"sync"
 	"torrent-client/algorithms"
 	"torrent-client/utils"
 
@@ -102,9 +103,9 @@ func main() {
 	encodedInfoHash := utils.EncodeInfoHash(infoHash)
 
 	// so the error basically exist due to the double encoding
-
+	peer_id := utils.GeneratePeerID()
 	params := url.Values{}
-	params.Add("peer_id", utils.GeneratePeerID()) // 20-byte peer ID
+	params.Add("peer_id", peer_id) // 20-byte peer ID
 	params.Add("port", strconv.Itoa(port))
 	params.Add("uploaded", "0")
 	params.Add("downloaded", "0")
@@ -154,13 +155,15 @@ func main() {
 	// ~ I think so parsing peers part is done
 
 	client.Peers = parsedPeers
-	// ~ so the storing the peers part is done I think so how should I connect to the peers
-	// so the brute force approach is to connect to all peers at once
-	// ~ but my main concern is not to connect my self to peers I want to connect diff peers with each other based on there specifications
+	var wg sync.WaitGroup
 
-	// ! Arising Questions
-	// ~ So when I connect to the tracker Is I am also registered there
-	// ~ So for the peers lists I have to add both outbound that I get from the tracker and inbound peers that connect with me in the same peer list
-	// ~
+	for key, peer := range client.Peers {
+
+		wg.Add(1)
+		go client.ConnectToPeer(peer, key, infoHash, peer_id, &wg)
+	}
+
+	wg.Wait()
+	fmt.Println("Finished connecting to peers")
 
 }
