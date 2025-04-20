@@ -38,71 +38,82 @@ func (tc *TorrentClient) ConnectToPeer(peer *Peer, address string, infoHash [20]
 
 func (tc *TorrentClient) PerformHandshake(conn net.Conn, infoHash [20]byte, peerID string) error {
 	// Construct the handshake
-	buf := make([]byte, 68)
-	buf[0] = 19 // protocol name length
-	copy(buf[1:], "BitTorrent protocol")
-	// 8 reserved bytes (zero)
-	copy(buf[28:], infoHash[:])    // info_hash (20 bytes)
-	copy(buf[48:], []byte(peerID)) // peer_id (20 bytes)
 
-	// Send handshake
+	buf := make([]byte, 68)
+
+	// first  I have to intiate the memory for protocol
+	buf[0] = 19
+	copy(buf[1:], "BitTorrent protocol")
+
+	copy(buf[28:], infoHash[:])
+	copy(buf[48:], []byte(peerID))
+
 	_, err := conn.Write(buf)
+
 	if err != nil {
 		return fmt.Errorf("failed to send handshake: %w", err)
 	}
 
-	// Read handshake response (68 bytes)
 	resp := make([]byte, 68)
+
+	// now I have to read the response and write in to memory and check the info hash
 	_, err = io.ReadFull(conn, resp)
+
 	if err != nil {
 		return fmt.Errorf("failed to read handshake: %w", err)
 	}
 
-	// Validate info hash
 	if !bytes.Equal(resp[28:48], infoHash[:]) {
 		return fmt.Errorf("info hash mismatch")
 	}
 
 	log.Println("🤝 Handshake successful")
+
 	return nil
 }
-
 func (tc *TorrentClient) PeerLoop(conn net.Conn, peer *Peer, wg *sync.WaitGroup) {
-	wg.Done()
-	// read the bit field like which pieces a peer have
-	for _, val := range peer.Bitfield {
-		if val {
-			_, err := conn.Write(InterestedMessage())
-			if err != nil {
-				log.Printf("❌ Failed to send interested: %v", err)
-				return
-			}
-			log.Println("📨 Sent INTERESTED to peer")
+	defer wg.Done()
 
-			msg, err := ReadMessage(conn)
+	// Send INTERESTED once (you may enhance with bitfield logic later)
+	_, err := conn.Write(InterestedMessage())
+	if err != nil {
+		log.Printf("❌ Failed to send interested: %v", err)
+		return
+	}
+	log.Println("📨 Sent INTERESTED to peer")
 
-			if err != nil {
-				log.Printf("Peer disconnected: %v", err)
-				return
-			}
+	// Start loop to listen for messages
+	for {
+		msg, err := ReadMessage(conn)
+		if err != nil {
+			log.Printf("❌ Peer disconnected or error: %v", err)
+			return
+		}
 
-			switch msg.ID {
-			case 1:
-				log.Println("✅ Peer unchoked us")
-				peer.Choked = false
+		switch msg.ID {
+		case 0: // CHOKE
+			log.Println("🚫 Peer choked us")
+			peer.Choked = true
 
-			case 0: // CHOKE
-				log.Println("🚫 Peer choked us")
-				peer.Choked = true
-			case 4: // HAVE
-				// update peer bitfield
-			case 5: // BITFIELD
-				// set peer.Bitfield
-			}
+		case 1: // UNCHOKE
+			log.Println("✅ Peer unchoked us")
+			peer.Choked = false
 
+		case 4: // HAVE
+			// update peer.Bitfield[msg.Payload[0]] = true
+			log.Println("📦 Peer sent HAVE (implement logic here)")
+
+		case 5: // BITFIELD
+			peer.Bitfield = ParseBitfield(msg.Payload)
+			log.Printf("📊 Received bitfield: %v", peer.Bitfield)
+
+		case 7: // PIECE
+			log.Println("📥 Received PIECE (implement logic here)")
+
+		default:
+			log.Printf("🔎 Unknown message ID: %d", msg.ID)
 		}
 	}
-
 }
 
 func InterestedMessage() []byte {
@@ -146,4 +157,14 @@ func ReadMessage(conn net.Conn) (Message, error) {
 
 	return msg, nil
 
+}
+
+func ParseBitfield(payload []byte) []bool {
+	bits := []bool{}
+	for _, b := range payload {
+		for i := 7; i >= 0; i-- {
+			bits = append(bits, (b>>i)&1 == 1)
+		}
+	}
+	return bits
 }
