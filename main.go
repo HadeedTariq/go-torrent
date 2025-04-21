@@ -158,7 +158,6 @@ func main() {
 	var wg sync.WaitGroup
 
 	for key, peer := range client.Peers {
-
 		wg.Add(1)
 		go client.ConnectToPeer(peer, key, infoHash, peer_id, &wg)
 	}
