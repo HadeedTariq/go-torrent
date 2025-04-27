@@ -6,15 +6,8 @@ import (
 	"fmt"
 )
 
-const maxHash = 256 // Keep the ID space small for demo
-
-func hashKey(input string) int {
-	hasher := sha1.New()
-	hasher.Write([]byte(input))
-	hash := hasher.Sum(nil)
-	val, _ := hex.DecodeString(fmt.Sprintf("%x", hash))
-	return int(val[0]) % maxHash
-}
+// so the first thing required in the dht is the node
+const MAX_SIZE = 256
 
 type Node struct {
 	Name      string
@@ -23,42 +16,64 @@ type Node struct {
 	Successor *Node
 }
 
+// the other functionality that comes to the dht is the creating hash of the key
+
 func NewNode(name string) *Node {
 	return &Node{
 		Name: name,
-		ID:   hashKey(name),
+		ID:   keyHasher(name),
 		Data: make(map[string]string),
 	}
 }
+func keyHasher(key string) int {
 
-func (n *Node) SetSuccessor(succ *Node) {
-	n.Successor = succ
+	hasher := sha1.New()
+	hasher.Write([]byte(key))
+	hash := hasher.Sum(nil)
+
+	val, _ := hex.DecodeString(fmt.Sprintf("%x", hash))
+
+	return int(val[0]) % MAX_SIZE
 }
 
-func (n *Node) IsResponsible(keyHash int) bool {
-	if n.Successor == nil {
+// now the next thing that comes out is to store in the node
+
+func (node *Node) SetSuccessor(newNode *Node) {
+	node.Successor = newNode
+}
+
+func (node *Node) Store(key string, value string) {
+	keyHash := keyHasher(key)
+	if node.isResponsible(keyHash) {
+		node.Data[key] = value
+	} else {
+		node.Successor.Store(key, value)
+	}
+
+}
+
+func (node *Node) isResponsible(keyHash int) bool {
+	// now what I have to do in is responsible is to run some checks
+	// so how successor is decide
+
+	if node.Successor == nil {
 		return true
 	}
-	if n.ID < n.Successor.ID {
-		return keyHash > n.ID && keyHash <= n.Successor.ID
+	if node.ID < node.Successor.ID {
+		return node.ID < keyHash && keyHash <= node.Successor.ID
 	}
-	return keyHash > n.ID || keyHash <= n.Successor.ID
+
+	return keyHash > node.ID || keyHash <= node.Successor.ID
 }
 
-func (n *Node) Store(key string, value string) {
-	keyHash := hashKey(key)
-	if n.IsResponsible(keyHash) {
-		fmt.Printf("%s is storing key '%s' => %s\n", n.Name, key, value)
-		n.Data[key] = value
+// also have to implement the find functionality there
+
+func (node *Node) Find(key string) string {
+	keyHash := keyHasher(key)
+
+	if node.isResponsible(keyHash) {
+		return node.Data[key]
 	} else {
-		n.Successor.Store(key, value)
+		return node.Successor.Find(key)
 	}
-}
-
-func (n *Node) Find(key string) string {
-	keyHash := hashKey(key)
-	if n.IsResponsible(keyHash) {
-		return n.Data[key]
-	}
-	return n.Successor.Find(key)
 }
